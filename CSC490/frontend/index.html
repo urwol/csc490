@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+        background: #f7f7f8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .chat-container {
+        width: 600px;
+        max-width: 95%;
+        height: 90vh;
+        background: #ffffff;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e5e5e5;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        border-bottom: 1px solid #e5e5e5;
+        background: #ffffff;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background: #ffffff;
+    }
+
+    .message {
+        max-width: 75%;
+        padding: 14px 18px;
+        border-radius: 12px;
+        font-size: 15px;
+        line-height: 1.6;
+        word-wrap: break-word;
+    }
+
+    .user-message {
+        align-self: flex-end;
+        background: #10a37f;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .bot-message {
+        align-self: flex-start;
+        background: #f1f1f1;
+        color: #111;
+        border-bottom-left-radius: 4px;
+    }
+
+    .chat-input {
+        padding: 16px;
+        border-top: 1px solid #e5e5e5;
+        background: #ffffff;
+    }
+
+    .input-wrapper {
+        display: flex;
+        align-items: center;
+        background: #f1f1f1;
+        border-radius: 25px;
+        padding: 8px 12px;
+    }
+
+    .chat-input input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 15px;
+        padding: 8px;
+    }
+
+    .chat-input button {
+        border: none;
+        background: #10a37f;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s ease;
+    }
+
+    .chat-input button:hover {
+        background: #0e8c6d;
+    }
+
+     .typing {
+        font-style: italic;
+        opacity: 0.7;
+    }
+
+    .bot-message h3 {
+    margin-top: 10px;
+    }
+
+    .bot-message ul {
+        padding-left: 20px;
+    }
+
+    .bot-message li {
+        margin-bottom: 6px;
+    }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        📕 Bookworm AI
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot-message">
+            Hello 👋 How can I help you today?
+        </div>
+    </div>
+    
+    <div class="chat-input">
+    <div class="input-wrapper">
+        <input type="text" id="userInput" placeholder="Message ChatBot..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+</div>
+
+<script>
+    function sendMessage() {
+        const input = document.getElementById("userInput");
+        const messageText = input.value.trim();
+        if (messageText === "") return;
+
+        const chatMessages = document.getElementById("chatMessages");
+
+        // User message
+        const userMessage = document.createElement("div");
+        userMessage.classList.add("message", "user-message");
+        userMessage.textContent = messageText;
+        chatMessages.appendChild(userMessage);
+
+        // Typing indicator
+        const typingMessage = document.createElement("div");
+        typingMessage.classList.add("message", "bot-message", "typing");
+        typingMessage.textContent = "Bot is typing...";
+        chatMessages.appendChild(typingMessage);
+        input.disabled = true;
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        input.value = "";
+
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            typingMessage.remove();
+
+            const botMessage = document.createElement("div");
+            botMessage.classList.add("message", "bot-message");
+            botMessage.innerHTML = marked.parse(data.reply);
+
+            chatMessages.appendChild(botMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            input.disabled = false;
+            input.focus();
+
+        })
+        .catch(error => {
+            typingMessage.remove();
+            input.disabled = false;
+            console.error("Error:", error);
+        });
+    }
+
+    // Allow Enter key to send
+    document.getElementById("userInput")
+        .addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+</script>
+
+</body>
+</html>
