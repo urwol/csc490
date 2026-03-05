@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chatbot Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
 <style>
     * {
         box-sizing: border-box;
@@ -110,13 +111,30 @@
     .chat-input button:hover {
         background: #0e8c6d;
     }
+
+     .typing {
+        font-style: italic;
+        opacity: 0.7;
+    }
+
+    .bot-message h3 {
+    margin-top: 10px;
+    }
+
+    .bot-message ul {
+        padding-left: 20px;
+    }
+
+    .bot-message li {
+        margin-bottom: 6px;
+    }
 </style>
 </head>
 <body>
 
 <div class="chat-container">
     <div class="chat-header">
-        My Chatbot
+        📕 Bookworm AI
     </div>
 
     <div class="chat-messages" id="chatMessages">
@@ -147,17 +165,47 @@
         userMessage.textContent = messageText;
         chatMessages.appendChild(userMessage);
 
-        input.value = "";
+        // Typing indicator
+        const typingMessage = document.createElement("div");
+        typingMessage.classList.add("message", "bot-message", "typing");
+        typingMessage.textContent = "Bot is typing...";
+        chatMessages.appendChild(typingMessage);
+        input.disabled = true;
+
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        // Simulated bot reply
-        setTimeout(() => {
+        input.value = "";
+
+        fetch("http://127.0.0.1:8000/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            typingMessage.remove();
+
             const botMessage = document.createElement("div");
             botMessage.classList.add("message", "bot-message");
-            botMessage.textContent = "You said: " + messageText;
+            botMessage.innerHTML = marked.parse(data.reply);
+
             chatMessages.appendChild(botMessage);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 800);
+
+            input.disabled = false;
+            input.focus();
+
+        })
+        .catch(error => {
+            typingMessage.remove();
+            input.disabled = false;
+            console.error("Error:", error);
+        });
     }
 
     // Allow Enter key to send
